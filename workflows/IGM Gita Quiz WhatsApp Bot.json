@@ -1,0 +1,195 @@
+{
+  "name": "IGM Gita Quiz WhatsApp Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "path": "whatsapp-incoming",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "d826d87b-7857-4014-a95c-c8eecf1ca6c1",
+      "name": "WhatsApp Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        -880,
+        -32
+      ],
+      "webhookId": "whatsapp-incoming"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.query ? $json.query['hub.mode'] : '' }}",
+              "value2": "subscribe"
+            }
+          ]
+        }
+      },
+      "id": "052b10f0-a630-41b3-a4c6-8637fd5a6216",
+      "name": "Is Verification?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -656,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {}
+      },
+      "id": "9475839a-be4c-4e1e-b343-10c7907bb010",
+      "name": "Respond to Verification",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract incoming WhatsApp message\nconst body = $input.first().json.body;\nconst entry = body?.entry?.[0];\nconst changes = entry?.changes?.[0];\nconst value = changes?.value;\nconst messages = value?.messages?.[0];\n\n// Check if message exists\nif (!messages) {\n  return [];\n}\n\nconst userMessage = messages?.text?.body?.trim() || '';\nconst userPhone = messages?.from || '';\nconst messageId = messages?.id || '';\n\n// Define menu responses in Hindi\nconst responses = {\n  '1': '📚 *गीता क्विज़ 2025*\\n\\n• प्रारंभ तिथि: 4 नवंबर 2025\\n• समाप्ति तिथि: 14 नवंबर 2025\\n• श्रेणियां: स्कूल, कॉलेज, ओपन\\n• पुरस्कार राशि: ₹50,000 तक\\n• आयोजक: जिला प्रशासन कुरुक्षेत्र\\n\\n📌 मुख्य मेनू के लिए 0 भेजें',\n  \n  '2': '📝 *पंजीकरण करें*\\n\\nऑनलाइन पंजीकरण:\\n🌐 https://kurukshetra.gov.in/igm/register\\n\\nया हमसे संपर्क करें:\\n📞 01744-222XXX\\n📧 igm@kurukshetra.gov.in\\n\\n📌 मेनू के लिए 0 भेजें',\n  \n  '3': '📋 *नियम और शर्तें*\\n\\n✓ भारतीय नागरिक पात्र हैं\\n✓ आयु सीमा: 10-40 वर्ष\\n✓ ऑनलाइन परीक्षा\\n✓ कुल प्रश्न: 100\\n✓ समय सीमा: 60 मिनट\\n✓ भाषा: हिंदी/अंग्रेजी\\n\\nविस्तृत नियम:\\nhttps://kurukshetra.gov.in/igm/rules\\n\\n📌 मेनू: 0',\n  \n  '4': '📅 *महत्वपूर्ण तिथियां*\\n\\n📝 पंजीकरण शुरू: 1 नवंबर 2025\\n📝 पंजीकरण समाप्ति: 3 नवंबर 2025\\n📚 क्विज़ प्रारंभ: 4 नवंबर 2025\\n📚 क्विज़ समाप्ति: 14 नवंबर 2025\\n🏆 परिणाम घोषणा: 20 नवंबर 2025\\n🎁 पुरस्कार वितरण: 7 दिसंबर 2025\\n\\n📌 मेनू: 0',\n  \n  '5': '📞 *संपर्क करें*\\n\\n🏛️ जिला प्रशासन कुरुक्षेत्र\\n📧 dc@kurukshetra.gov.in\\n📞 01744-222XXX\\n🌐 kurukshetra.gov.in\\n\\n📍 पता:\\nमिनी सचिवालय\\nकुरुक्षेत्र, हरियाणा - 136118\\n\\n📌 मेनू: 0',\n  \n  '0': '🙏 *नमस्ते!*\\n\\n*International Gita Mahotsav 2025*\\n*Gita Quiz Registration*\\n\\nकृपया विकल्प चुनें:\\n\\n1️⃣ क्विज़ जानकारी\\n2️⃣ पंजीकरण करें\\n3️⃣ नियम और शर्तें\\n4️⃣ महत्वपूर्ण तिथियां\\n5️⃣ संपर्क जानकारी\\n\\nकृपया संख्या (1-5) भेजें',\n  \n  'default': '🙏 *नमस्ते!*\\n\\n*International Gita Mahotsav 2025*\\n*Gita Quiz Registration*\\n\\nकृपया विकल्प चुनें:\\n\\n1️⃣ क्विज़ जानकारी\\n2️⃣ पंजीकरण करें\\n3️⃣ नियम और शर्तें\\n4️⃣ महत्वपूर्ण तिथियां\\n5️⃣ संपर्क जानकारी\\n\\nकृपया संख्या (1-5) भेजें'\n};\n\n// Get appropriate response based on user input\nconst responseText = responses[userMessage] || responses['default'];\n\n// Return data for next node (HTTP Request)\nreturn [{\n  json: {\n    phone: userPhone,\n    message: responseText,\n    messageId: messageId\n  }\n}];"
+      },
+      "id": "a7b6aae0-4940-4281-b326-00885d905f8d",
+      "name": "Menu Logic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v18.0/838788905982249/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer EAAMswZAGjFWABP3Ru73ieZBZCVi4Ym0u9wWdv2r8ZA8rKINgROt2c61Q2Hd8CrEPJsIbZBaEjevLpebi"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.message }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "1a16605d-7612-491a-a8de-99278c00fe4c",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -208,
+        80
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "sLrQyEmXac1GQRPz",
+          "name": "Header Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": {}
+      },
+      "id": "453c6636-cd9d-4c4a-aad5-1bb439d76309",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        16,
+        80
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WhatsApp Webhook": {
+      "main": [
+        [
+          {
+            "node": "Is Verification?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Verification?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Verification?": {
+      "main": [
+        [
+          {
+            "node": "Respond to Verification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Menu Logic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Menu Logic": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Reply": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a49fbb1e-0a55-47f3-b197-292ac182b7f1",
+  "meta": {
+    "instanceId": "48526abc278275333dce5fc863fc98d13924c5865e9ff4eb9498a75e87d7df1f"
+  },
+  "id": "MNORnssISF5zD6nq",
+  "tags": []
+}
